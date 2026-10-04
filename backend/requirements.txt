@@ -1,0 +1,6 @@
+# StreamInsight Analytics API – Requirements
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+pymongo[srv]==4.10.1
+pydantic==2.11.3
+python-multipart==0.0.20
