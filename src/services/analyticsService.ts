@@ -31,6 +31,8 @@ import {
   PipelineStatus,
   TimeRange,
   GenreType,
+  SubscriptionTier,
+  DeviceType,
 } from '../types/analytics';
 
 import { mockContentList } from '../data/mockContent';
@@ -120,6 +122,7 @@ function adaptWatchTime(raw: Record<string, unknown>[]): WatchTimeDataPoint[] {
   }));
 }
 
+
 function adaptGenres(raw: Record<string, unknown>[]): GenreAnalytics[] {
   return raw.map((r) => ({
     genre: r.genre as GenreType,
@@ -127,29 +130,41 @@ function adaptGenres(raw: Record<string, unknown>[]): GenreAnalytics[] {
     totalStreams: r.totalStreams as number,
     sharePercentage: r.sharePercentage as number,
     avgCompletionRate: r.avgCompletionRate as number,
+    // topTitle is not produced by the ETL; use a sensible default
+    topTitle: (r.topTitle as string | undefined) ?? 'N/A',
     color: r.color as string,
   }));
 }
 
+const DEVICE_ICONS: Record<string, string> = {
+  'Smart TV': 'tv',
+  'Mobile':   'smartphone',
+  'Laptop':   'laptop',
+  'Tablet':   'tablet',
+  'Other':    'monitor',
+};
+
 function adaptDevices(raw: Record<string, unknown>[]): DeviceAnalytics[] {
   return raw.map((r) => ({
-    device: r.device as string,
-    percentage: r.percentage as number,
-    totalStreams: r.totalStreams as number,
-    watchHours: r.watchHours as number,
-    color: r.color as string,
+    device:       r.device as DeviceType,
+    percentage:   r.percentage as number,
+    totalStreams:  r.totalStreams as number,
+    watchHours:   r.watchHours as number,
+    color:        r.color as string,
+    // iconName is not in ETL output; derive from device name
+    iconName:     DEVICE_ICONS[r.device as string] ?? 'monitor',
   }));
 }
 
 function adaptCountries(raw: Record<string, unknown>[]): CountryAnalytics[] {
   return raw.map((r) => ({
-    country: r.country as string,
+    country:     r.country as string,
     countryCode: r.countryCode as string,
-    flagEmoji: r.flagEmoji as string,
+    flagEmoji:   r.flagEmoji as string,
     viewerCount: r.viewerCount as number,
-    percentage: r.percentage as number,
-    watchHours: r.watchHours as number,
-    growthRate: r.growthRate as number,
+    percentage:  r.percentage as number,
+    watchHours:  r.watchHours as number,
+    growthRate:  r.growthRate as number,
   }));
 }
 
@@ -158,6 +173,11 @@ function adaptContent(raw: Record<string, unknown>[]): ContentItem[] {
     id:              r.id as string,
     title:           r.title as string,
     genre:           r.genre as GenreType,
+    // Fields not produced by ETL – use safe defaults
+    releaseYear:     (r.releaseYear as number | undefined) ?? 2024,
+    durationMinutes: (r.durationMinutes as number | undefined) ?? 90,
+    ageRating:       (r.ageRating as string | undefined) ?? 'TV-MA',
+    description:     (r.description as string | undefined) ?? '',
     totalViews:      r.totalViews as number,
     totalWatchHours: r.totalWatchHours as number,
     completionRate:  r.completionRate as number,
@@ -171,13 +191,13 @@ function adaptContent(raw: Record<string, unknown>[]): ContentItem[] {
 
 function adaptSubscriptions(raw: Record<string, unknown>[]): SubscriptionAnalytics[] {
   return raw.map((r) => ({
-    tier:              r.tier as string,
-    subscribers:       r.subscribers as number,
-    percentage:        r.percentage as number,
-    monthlyPrice:      r.monthlyPrice as number,
-    estimatedRevenue:  r.estimatedRevenue as number,
-    growthRate:        r.growthRate as number,
-    color:             r.color as string,
+    tier:             r.tier as SubscriptionTier,
+    subscribers:      r.subscribers as number,
+    percentage:       r.percentage as number,
+    monthlyPrice:     r.monthlyPrice as number,
+    estimatedRevenue: r.estimatedRevenue as number,
+    growthRate:       r.growthRate as number,
+    color:            r.color as string,
   }));
 }
 
@@ -186,18 +206,26 @@ function adaptRetention(raw: Record<string, unknown>[]): RetentionCohort[] {
     period:            r.period as string,
     retentionRate:     r.retentionRate as number,
     industryBenchmark: r.industryBenchmark as number,
+    // Derived fields not in ETL output
+    returningUsers:    (r.returningUsers as number | undefined) ?? 0,
+    dropOffRate:       (r.dropOffRate as number | undefined) ??
+                       Math.max(0, 100 - (r.retentionRate as number)),
   }));
 }
 
 function adaptPeakHours(raw: Record<string, unknown>[]): PeakHourDataPoint[] {
   return raw.map((r) => ({
-    hour:         r.hour as string,
-    hour24:       r.hour24 as number,
-    viewersCount: r.viewersCount as number,
-    streamsCount: r.streamsCount as number,
-    isPeak:       r.isPeak as boolean,
+    hour:          r.hour as string,
+    hour24:        r.hour24 as number,
+    viewersCount:  r.viewersCount as number,
+    streamsCount:  r.streamsCount as number,
+    isPeak:        r.isPeak as boolean,
+    // bandwidthGbps not in ETL output; estimate from stream count
+    bandwidthGbps: (r.bandwidthGbps as number | undefined) ??
+                   Math.round((r.streamsCount as number) * 0.004 * 100) / 100,
   }));
 }
+
 
 // ── Service class ─────────────────────────────────────────────────────────────
 class AnalyticsService {

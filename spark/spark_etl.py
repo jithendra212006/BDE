@@ -20,6 +20,17 @@ import os
 import sys
 import json
 import math
+
+# ── Fix PySpark / SPARK_HOME version mismatch ────────────────────────────────
+# If SPARK_HOME points to a different Spark version than the pip-installed
+# PySpark package, the JVM bridge will crash with a Py4JError.
+# Remove SPARK_HOME so PySpark 3.5.x uses its own bundled JARs.
+os.environ.pop("SPARK_HOME", None)
+os.environ.pop("SPARK_HOME_FALLBACK", None)
+# Ensure the correct Python interpreter is used by PySpark workers
+os.environ.setdefault("PYSPARK_PYTHON", sys.executable)
+os.environ.setdefault("PYSPARK_DRIVER_PYTHON", sys.executable)
+
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import DoubleType
@@ -350,6 +361,15 @@ retention_data = [
 print(f"[Spark] Retention cohorts computed")
 
 # ── 4. Write outputs ──────────────────────────────────────────────────────────
+import datetime
+
+class _DateEncoder(json.JSONEncoder):
+    """Serialize datetime.date / datetime.datetime as ISO strings."""
+    def default(self, obj):
+        if isinstance(obj, (datetime.date, datetime.datetime)):
+            return obj.isoformat()
+        return super().default(obj)
+
 outputs = {
     "kpi.json":           kpi_out,
     "watch_time.json":    watch_ts_data,
@@ -364,8 +384,12 @@ outputs = {
 for fname, payload in outputs.items():
     path = os.path.join(OUTPUT_DIR, fname)
     with open(path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
+        json.dump(payload, f, ensure_ascii=False, indent=2, cls=_DateEncoder)
     print(f"[Spark] Written -> spark/output/{fname}")
+
+spark.stop()
+print("[Spark] ETL complete - all outputs ready for FastAPI")
+
 
 spark.stop()
 print("[Spark] ETL complete - all outputs ready for FastAPI")

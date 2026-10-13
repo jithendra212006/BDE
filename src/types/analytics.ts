@@ -1,8 +1,14 @@
-// TypeScript interfaces for StreamInsight Big Data Analytics
 
 export type SubscriptionTier = 'Basic' | 'Standard' | 'Premium';
-export type DeviceType = 'Smart TV' | 'Mobile' | 'Laptop' | 'Tablet' | 'Other';
-export type GenreType = 
+
+export type DeviceType =
+  | 'Smart TV'
+  | 'Mobile'
+  | 'Laptop'
+  | 'Tablet'
+  | 'Other';
+
+export type GenreType =
   | 'Drama'
   | 'Action'
   | 'Comedy'
@@ -30,13 +36,13 @@ export interface ContentItem {
   genre: GenreType;
   releaseYear: number;
   durationMinutes: number;
-  rating: number; // e.g. 8.9
-  ageRating: string; // e.g. 'TV-MA', 'PG-13'
+  rating: number;
+  ageRating: string;
   totalViews: number;
   totalWatchHours: number;
-  completionRate: number; // percentage 0-100
-  trendScore: number; // percentage change +24%
-  posterColor: string; // gradient / placeholder color
+  completionRate: number;
+  trendScore: number;
+  posterColor: string;
   description: string;
   isTrending: boolean;
   rank?: number;
@@ -63,20 +69,29 @@ export interface KPIMetric {
   id: string;
   label: string;
   value: string | number;
-  rawValue: number;
+
+  // Support both existing KPI data and API adapter fields
+  rawValue?: number;
+  numericValue?: number;
   unit?: string;
+
   changePercentage: number;
   isPositive: boolean;
-  comparisonPeriod: string;
-  sparklineData: number[];
-  iconName: string;
-  description: string;
+
+  // Existing and API adapter period fields
+  comparisonPeriod?: string;
+  periodText?: string;
+
+  // Optional display metadata
+  sparklineData?: number[];
+  iconName?: string;
+  description?: string;
 }
 
 export interface WatchTimeDataPoint {
   date: string;
   formattedDate: string;
-  watchHours: number; // in thousands/millions
+  watchHours: number;
   activeStreams: number;
   uniqueViewers: number;
 }
@@ -92,7 +107,7 @@ export interface GenreAnalytics {
 }
 
 export interface PeakHourDataPoint {
-  hour: string; // "12 AM", "2 AM", ...
+  hour: string;
   hour24: number;
   viewersCount: number;
   streamsCount: number;
@@ -120,8 +135,8 @@ export interface CountryAnalytics {
 }
 
 export interface RetentionCohort {
-  period: string; // "Day 1", "Day 7", "Day 14", "Day 30"
-  retentionRate: number; // e.g. 88.4%
+  period: string;
+  retentionRate: number;
   returningUsers: number;
   dropOffRate: number;
   industryBenchmark: number;
@@ -142,7 +157,7 @@ export interface CompletionRateItem {
   title: string;
   genre: GenreType;
   completionRate: number;
-  dropOffPoint: string; // e.g. "Ep 4 / 42 min"
+  dropOffPoint: string;
   avgRewatchRate: number;
 }
 
@@ -150,7 +165,12 @@ export interface RecentActivityEvent {
   id: string;
   timestamp: string;
   timeAgo: string;
-  type: 'stream_surge' | 'milestone' | 'genre_shift' | 'subscription' | 'pipeline_sync';
+  type:
+    | 'stream_surge'
+    | 'milestone'
+    | 'genre_shift'
+    | 'subscription'
+    | 'pipeline_sync';
   title: string;
   description: string;
   highlightText?: string;
@@ -180,4 +200,3 @@ export interface PipelineStatus {
   lastSyncTimestamp: string;
   activeSparkWorkers: number;
 }
-
